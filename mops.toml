@@ -2,7 +2,7 @@
 name = "stable-simple-log"
 version = "0.1.0"
 description = "This log keeps a set buffer until it is full and then clears it. You can intercept the clear and file the logs elsewhere. It supports a timestamp, namespace, and log level for filtering."
-repository = "https://github.com/PanIndustrial-Org/stable-simple-log"
+repository = "https://github.com/PanIndustrial-Org/stable-simple-log-mo"
 keywords = [ "log" ]
 
 [dependencies]
