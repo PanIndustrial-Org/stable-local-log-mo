@@ -1,8 +1,8 @@
 [package]
-name = "stable-simple-log"
+name = "stable-local-log"
 version = "0.1.0"
 description = "This log keeps a set buffer until it is full and then clears it. You can intercept the clear and file the logs elsewhere. It supports a timestamp, namespace, and log level for filtering."
-repository = "https://github.com/PanIndustrial-Org/stable-simple-log-mo"
+repository = "https://github.com/PanIndustrial-Org/stable-local-log-mo"
 keywords = [ "log" ]
 
 [dependencies]
