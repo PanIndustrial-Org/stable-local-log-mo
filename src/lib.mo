@@ -16,6 +16,7 @@ import Timer "mo:base/Timer";
 import Error "mo:base/Error";
 import Map "mo:map/Map";
 import Vector "mo:vector";
+import Text "mo:base/Text";
 
 module {
 
@@ -170,12 +171,23 @@ module {
     public func log_add(message: Text, level: MigrationTypes.Current.LogLevel, namespace: Text) : () {
      
       if (not passesLevel(level)) return;
+      let finalText = if(message.size() > state.maxMessageSize) {
+        var marker : Nat = 0;
+        let modified = Text.translate(message, func(c){
+          if (marker >= state.maxMessageSize){ return ""};
+          marker += 1;
+          Text.fromChar(c);
+        });
+        modified # "...";
+      } else {
+        message;
+      };
       
       state.icrc85.activeActions += 1;
       
       let entry : MigrationTypes.Current.LogEntry = {
         timestamp = nowNat();
-        message = message;
+        message = finalText;
         level = levelToNat(level);
         namespace = namespace;
       };
