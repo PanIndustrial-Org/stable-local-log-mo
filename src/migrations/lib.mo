@@ -33,7 +33,8 @@ module {
     prevState: MigrationTypes.State, 
     nextState: MigrationTypes.State, 
     args: MigrationTypes.Args,
-    caller: Principal
+    caller: Principal,
+    canister: Principal
   ): MigrationTypes.State {
 
    
@@ -48,7 +49,7 @@ module {
       debug if (debug_channel.announce) D.print("upgrade should have run");
       migrationId := if (nextMigrationId > migrationId) migrationId + 1 else migrationId - 1;
 
-      state := migrate(state, args, caller);
+      state := migrate(state, args, caller, canister);
     };
 
     return state;

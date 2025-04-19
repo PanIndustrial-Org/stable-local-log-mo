@@ -12,6 +12,7 @@ import TT "mo:timer-tool";
 import ICRC10 "mo:icrc10-mo";
 
 import Local_log ".";
+import Service "service";
 
 shared (deployer) actor class Local_logCanister<system>(
   args:?{
@@ -72,7 +73,8 @@ shared (deployer) actor class Local_logCanister<system>(
         syncUnsafe = null;
         reportBatch = null;
       };
-    });
+    }
+);
 
     onInitialize = ?(func (newClass: TT.TimerTool) : async* () {
       D.print("Initializing TimerTool");
@@ -94,6 +96,7 @@ shared (deployer) actor class Local_logCanister<system>(
       {
         tt = tt();
         advanced = null; // Add any advanced options if needed
+        onEvict = null;
       };
     });
 
@@ -109,9 +112,38 @@ shared (deployer) actor class Local_logCanister<system>(
   });
 
 
+  // Expose logger as required by Service interface
+  let logger = local_log();
+
+  public shared({ caller }) func log_add(message: Text, level: Service.LogLevel, namespace: Text) : async () {
+    logger.log_add(message, level, namespace);
+  };
+
+  public query func log_query(q: Service.LogQuery) : async [Service.LogEntry] {
+    logger.log_query(q);
+  };
+
+  public shared({ caller }) func log_clear() : async Nat {
+    logger.log_clear();
+  };
+
+  public query func log_export(q: Service.LogQuery) : async Service.LogExportResult {
+    logger.log_export(q);
+  };
+
+  public query func log_size(ns: ?[Text], lvl: ?Service.LogLevel) : async Nat {
+    logger.log_size(ns, lvl);
+  };
+
+  public shared({ caller }) func log_set_buffer_size(size: Nat) : async Nat {
+    logger.log_set_buffer_size(size);
+  };
+
+  public query func log_get_buffer_size() : async Nat {
+    logger.log_get_buffer_size();
+  };
+
   public shared func hello(): async Text {
     return "world!";
   }
-
-
 };

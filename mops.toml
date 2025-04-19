@@ -1,9 +1,9 @@
 [package]
-name = "local_log"
-version = "0.1."
-description = "local_log description"
-repository = "https://github.com/Pan Industrial/local_log"
-keywords = [ "local_log" ]
+name = "stable-simple-log"
+version = "0.1.0"
+description = "This log keeps a set buffer until it is full and then clears it. You can intercept the clear and file the logs elsewhere. It supports a timestamp, namespace, and log level for filtering."
+repository = "https://github.com/PanIndustrial-Org/stable-simple-log"
+keywords = [ "log" ]
 
 [dependencies]
 base = "0.14.3"
@@ -13,6 +13,7 @@ timer-tool = "0.1.1"
 star = "0.1.1"
 map = "9.0.1"
 icrc10-mo = "0.0.1"
+vector = "0.4.1"
 
 [toolchain]
 moc = "0.14.3"
