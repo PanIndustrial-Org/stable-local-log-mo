@@ -1,0 +1,22 @@
+[package]
+name = "local_log"
+version = "0.1."
+description = "local_log description"
+repository = "https://github.com/Pan Industrial/local_log"
+keywords = [ "local_log" ]
+
+[dependencies]
+base = "0.14.3"
+ovs-fixed = "0.1.2"
+class-plus = "0.0.1"
+timer-tool = "0.1.1"
+star = "0.1.1"
+map = "9.0.1"
+icrc10-mo = "0.0.1"
+
+[toolchain]
+moc = "0.14.3"
+
+[dev-dependencies]
+test = "2.1.1"
+bench = "1.0.0"
