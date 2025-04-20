@@ -59,11 +59,7 @@ module {
 
   ///MARK: State
   public type State = {
-    icrc85: {
-      var nextCycleActionId: ?Nat;
-      var lastActionReported: ?Nat;
-      var activeActions: Nat;
-    };
+    icrc85: OVSFixed.ICRC85State;
     var bufferSize: Nat;         // log buffer maximum size; controls rollover
     var entries: Vector.Vector<LogEntry>;     // deprecated, kept for stable compatibility
     var minLevel: ?LogLevel;     // optional minimum log level for this logger

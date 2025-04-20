@@ -25,12 +25,16 @@ module {
   public type State = MigrationTypes.State;
   public type CurrentState = MigrationTypes.Current.State;
   public type Environment = MigrationTypes.Current.Environment;
+  public type Stats = MigrationTypes.Current.Stats;
   public type InitArgs = MigrationTypes.Current.InitArgs;
 
   public let init = Migration.migrate;
 
   public func initialState() : State { #v0_0_0(#data) };
   public let currentStateVersion = #v0_1_0(#id);
+
+  public let ICRC85_Timer_Namespace = "icrc85:ovs:shareaction:local_log";
+  public let ICRC85_Payment_Namespace = "com.panindustrial.libraries.local_log";
 
   public func test() : Nat {
     1;
@@ -55,24 +59,24 @@ module {
     onStorageChange : ((State) ->())
   }) : () -> Local_log {
 
-    D.print("Subscriber Init");
-    switch (config.pullEnvironment) {
-      case (?val) {
-        D.print("pull environment has value");
-      };
-      case (null) {
-        D.print("pull environment is null");
-      };
-    };
-
     let instance = ClassPlusLib.ClassPlus<system,
       Local_log,
       State,
       InitArgs,
       Environment>({config with constructor = Local_log}).get;
+
+    ovsfixed.initialize_cycleShare<system>({
+      namespace = ICRC85_Timer_Namespace;
+      icrc_85_state = instance().getState().icrc85;
+      wait = null;
+      registerExecutionListenerAsync = instance().environment.tt.registerExecutionListenerAsync;
+      setActionSync = instance().environment.tt.setActionSync;  
+      existingIndex = instance().environment.tt.getState().actionIdIndex;
+      handler = instance().handleIcrc85Action;
+    });
     
-    instance().initialize_icrc85<system>();
     instance;
+    
   };
 
   /// Main logging class used internally and by canisters/classes as a module
@@ -86,7 +90,7 @@ module {
   ) {
 
     public let debug_channel = { var announce = true };
-    let environment = switch (environment_passed) {
+    public let environment = switch (environment_passed) {
       case (?val) val;
       case (null) { D.trap("Environment is required") };
     };
@@ -301,37 +305,21 @@ module {
     
 
     ////////// ICRC85 OVS cycle sharing pattern /////////
-    private var _icrc85init = false;
-    let OneDay = 86_400_000_000_000;
 
-    public func initialize_icrc85<system>() : () {
-      if (_icrc85init) return;
-      _icrc85init := true;
-      ignore Timer.setTimer<system>(#nanoseconds(OneDay), scheduleCycleShare);
-      environment.tt.registerExecutionListenerAsync(?"icrc85:ovs:shareaction:local_log", handleIcrc85Action : TT.ExecutionAsyncHandler);
-    };
-
-    private func scheduleCycleShare<system>() : async () {
-      switch (state.icrc85.nextCycleActionId) {
-        case (?val) {
-          switch (Map.get(environment.tt.getState().actionIdIndex, Map.nhash, val)) {
-            case (?time) { return };
-            case (null) {};
-          };
-        };
-        case (null) {};
-      };
-      let result = environment.tt.setActionSync<system>(Int.abs(Time.now()), ({
-        actionType = "icrc85:ovs:shareaction:local_log";
-        params = Blob.fromArray([]);
-      }));
-      state.icrc85.nextCycleActionId := ?result.id;
-    };
-
-    private func handleIcrc85Action<system>(id: TT.ActionId, action: TT.Action) : async* Star.Star<TT.ActionId, TT.Error> {
+    public func handleIcrc85Action<system>(id: TT.ActionId, action: TT.Action) : async* Star.Star<TT.ActionId, TT.Error> {
       switch (action.actionType) {
-        case ("icrc85:ovs:shareaction:local_log") {
-          await* shareCycles<system>();
+        case (ICRC85_Timer_Namespace) {
+          await* ovsfixed.standardShareCycles({
+            icrc_85_state = state.icrc85;
+            icrc_85_environment = do?{environment.advanced!.icrc85!};
+            setActionSync = environment.tt.setActionSync;
+            timerNamespace = ICRC85_Timer_Namespace;
+            paymentNamespace = ICRC85_Payment_Namespace;
+            baseCycles = 200_000_000_000; // .2 XDR
+            maxCycles = 1_000_000_000_000; // 1 XDR
+            actionDivisor = 10000;
+            actionMultiplier = 200_000_000_000; // .2 XDR
+          });
           #awaited(id);
         };
         case (_) #trappable(id);
@@ -342,38 +330,19 @@ module {
       state;
     };
 
-    private func shareCycles<system>() : async* () {
-      let lastReportId = switch (state.icrc85.lastActionReported) {
-        case (?val) val; case (null) 0;
+    public func getStats() : Stats {
+      let stats : Stats = {
+        tt = environment.tt.getStats();
+        icrc85 = {
+          nextCycleActionId = state.icrc85.nextCycleActionId;
+          lastActionReported = state.icrc85.lastActionReported;
+          activeActions = state.icrc85.activeActions;
+        };
+        bufferSize = state.bufferSize;
+        minLevel = state.minLevel;
+        log = Vector.toArray(state.entries);
       };
-      let actions = if (state.icrc85.activeActions > 0) state.icrc85.activeActions else 1;
-      state.icrc85.activeActions := 0;
-      var cyclesToShare = 200_000_000_000; // .2 XDR
-      if (actions > 0) {
-        let additional = Nat.div(actions, 10000);
-        cyclesToShare := cyclesToShare + (additional * 200_000_000_000);
-        if (cyclesToShare > 1_000_000_000_000) cyclesToShare := 1_000_000_000_000;
-      };
-      try {
-        await* ovsfixed.shareCycles<system>({
-          environment = do ? { environment.advanced!.icrc85! };
-          namespace = "com.panindustrial.libraries.local_log";
-          actions = actions;
-          schedule = func <system>(period: Nat) : async* () {
-            let result = environment.tt.setActionSync<system>(Int.abs(Time.now()) + period, {
-              actionType = "icrc85:ovs:shareaction:local_log";
-              params = Blob.fromArray([]);
-            });
-            state.icrc85.nextCycleActionId := ?result.id;
-          };
-          cycles = cyclesToShare;
-        });
-        state.icrc85.lastActionReported := ?nowNat();
-      } catch (e) {
-        state.icrc85.activeActions := actions;
-        D.print("Error occurred during shareCycles: " # Error.message(e));
-        
-      };
+      stats;
     };
   };
 };

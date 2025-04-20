@@ -1,13 +1,13 @@
 [package]
 name = "stable-local-log"
-version = "0.1.1"
+version = "0.1.2"
 description = "This log keeps a set buffer until it is full and then clears it. You can intercept the clear and file the logs elsewhere. It supports a timestamp, namespace, and log level for filtering."
 repository = "https://github.com/PanIndustrial-Org/stable-local-log-mo"
 keywords = [ "log" ]
 
 [dependencies]
 base = "0.14.3"
-ovs-fixed = "0.1.2"
+ovs-fixed = "0.1.4"
 class-plus = "0.0.1"
 timer-tool = "0.1.1"
 star = "0.1.1"

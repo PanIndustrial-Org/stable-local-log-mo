@@ -143,6 +143,15 @@ shared (deployer) actor class Local_logCanister<system>(
     logger.log_get_buffer_size();
   };
 
+  public query func get_stats() : async Local_log.Stats {
+    let stats = logger.getStats();
+    return stats;
+  };
+
+  public query func get_icrc10() : async ICRC10.Response {
+    return ICRC10.respond(icrc10);
+  };
+
   public shared func hello(): async Text {
     return "world!";
   }
